@@ -1,0 +1,880 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Sistema completo de gestão de capitação alimentar com dashboard, receitas, calculadora e plano de capitação."
+    />
+    <meta name="theme-color" content="#134e4a" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta
+      name="apple-mobile-web-app-status-bar-style"
+      content="black-translucent"
+    />
+    <title>Gestão de Capitação</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  </head>
+  <body>
+    <div class="app-container">
+      <!-- Sidebar -->
+      <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+          <h1><i class="fas fa-utensils"></i> Gestão Capitação</h1>
+          <p>Sistema de gestão de capitação alimentar</p>
+        </div>
+        <nav class="sidebar-nav">
+          <ul>
+            <li
+              class="active"
+              data-section="dashboard"
+              onclick="navigate('dashboard')"
+            >
+              <i class="fas fa-chart-pie"></i> Dashboard
+              <span class="nav-badge" id="badgeDashboard">4</span>
+            </li>
+            <li data-section="itens" onclick="navigate('itens')">
+              <i class="fas fa-list"></i> Itens de Capitação
+              <span class="nav-badge" id="badgeItens">0</span>
+            </li>
+            <li data-section="receitas" onclick="navigate('receitas')">
+              <i class="fas fa-book-open"></i> Receitas
+              <span class="nav-badge" id="badgeReceitas">0</span>
+            </li>
+            <li data-section="calculadora" onclick="navigate('calculadora')">
+              <i class="fas fa-calculator"></i> Calculadora
+            </li>
+            <li data-section="plano" onclick="navigate('plano')">
+              <i class="fas fa-clipboard-list"></i> Plano de Capitação
+              <span class="nav-badge" id="badgePlano">0</span>
+            </li>
+            <li data-section="pesquisa" onclick="navigate('pesquisa')">
+              <i class="fas fa-search"></i> Pesquisar Captação
+            </li>
+            <li
+              onclick="toggleDarkMode()"
+              style="
+                cursor: pointer;
+                margin-top: 12px;
+                border-top: 1px solid var(--gray-300);
+                padding-top: 12px;
+              "
+            >
+              <button
+                class="dark-toggle"
+                onclick="
+                  event.stopPropagation();
+                  toggleDarkMode();
+                "
+                title="Alternar tema"
+                style="margin-right: 10px"
+              >
+                <i class="fas fa-sun"></i>
+                <i class="fas fa-moon"></i>
+              </button>
+              <span id="darkModeLabel">Modo Escuro</span>
+            </li>
+          </ul>
+        </nav>
+        <div class="sidebar-footer">
+          v3.0 Premium &mdash; Gestão de Capitação
+        </div>
+      </aside>
+
+      <!-- Main Content -->
+      <main class="main-content">
+        <button class="mobile-menu-btn" onclick="toggleSidebar()">
+          <i class="fas fa-bars"></i>
+        </button>
+
+        <!-- DASHBOARD -->
+        <section id="dashboard" class="section active">
+          <div class="top-bar">
+            <h2>Dashboard</h2>
+            <div class="top-bar-actions">
+              <button
+                class="btn btn-secondary btn-sm"
+                onclick="exportarDados()"
+              >
+                <i class="fas fa-download"></i> Exportar Dados
+              </button>
+              <label class="btn btn-secondary btn-sm" style="cursor: pointer">
+                <i class="fas fa-upload"></i> Importar
+                <input
+                  type="file"
+                  accept=".json"
+                  style="display: none"
+                  onchange="importarDados(this)"
+                />
+              </label>
+            </div>
+          </div>
+
+          <div class="stats-grid">
+            <div class="stat-card stagger-1">
+              <div class="stat-icon"><i class="fas fa-boxes"></i></div>
+              <div>
+                <div class="stat-value" id="statTotalItens">0</div>
+                <div class="stat-label">Total de Itens</div>
+              </div>
+            </div>
+            <div class="stat-card stagger-2">
+              <div class="stat-icon"><i class="fas fa-layer-group"></i></div>
+              <div>
+                <div class="stat-value" id="statTotalGrupos">0</div>
+                <div class="stat-label">Grupos</div>
+              </div>
+            </div>
+            <div class="stat-card stagger-3">
+              <div class="stat-icon"><i class="fas fa-tags"></i></div>
+              <div>
+                <div class="stat-value" id="statTotalCategorias">0</div>
+                <div class="stat-label">Categorias</div>
+              </div>
+            </div>
+            <div class="stat-card stagger-4">
+              <div class="stat-icon"><i class="fas fa-book-open"></i></div>
+              <div>
+                <div class="stat-value" id="statTotalReceitas">0</div>
+                <div class="stat-label">Receitas</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="dashboard-grid" style="display: grid; grid-template-columns: 2fr 1fr; gap: 24px">
+            <div class="card">
+              <div class="card-header">
+                <h3><i class="fas fa-chart-bar"></i> Distribuição por Grupo</h3>
+              </div>
+              <canvas
+                id="grupoChart"
+                style="width: 100%; height: 280px"
+              ></canvas>
+            </div>
+            <div class="card">
+              <div class="card-header">
+                <h3><i class="fas fa-trophy"></i> Top 10 — Maior Capitação</h3>
+              </div>
+              <div id="topCaptacao"></div>
+            </div>
+          </div>
+
+          <div class="card" style="margin-top: 24px">
+            <div class="card-header">
+              <h3><i class="fas fa-history"></i> Atividades Recentes</h3>
+            </div>
+            <div id="activityList"></div>
+          </div>
+        </section>
+
+        <!-- ITENS -->
+        <section id="itens" class="section">
+          <div class="top-bar">
+            <h2>Itens de Capitação</h2>
+            <div
+              class="top-bar-actions"
+              style="display: flex; align-items: center; gap: 12px"
+            >
+              <button class="btn btn-primary btn-sm" onclick="openNovoItem()">
+                <i class="fas fa-plus"></i> Novo Item
+              </button>
+            </div>
+          </div>
+          <div class="card">
+            <div class="search-wrapper" style="margin-bottom: 16px">
+              <i class="fas fa-search"></i>
+              <input
+                type="text"
+                id="buscaItens"
+                class="form-control"
+                placeholder="Buscar por grupo, categoria ou preparação..."
+              />
+            </div>
+            <div class="table-responsive">
+              <table id="itensTable">
+                <thead>
+                  <tr>
+                    <th>Grupo</th>
+                    <th>Categoria</th>
+                    <th>Preparação</th>
+                    <th style="text-align: center">Mínima (g)</th>
+                    <th style="text-align: center">Média (g)</th>
+                    <th style="text-align: center">Máxima (g)</th>
+                    <th style="text-align: right">Custo/kg</th>
+                    <th style="text-align: center">Ações</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- RECEITAS -->
+        <section id="receitas" class="section">
+          <div class="top-bar">
+            <h2>Receitas</h2>
+            <button
+              class="btn btn-primary btn-sm"
+              onclick="abrirModalReceita()"
+            >
+              <i class="fas fa-plus"></i> Nova Receita
+            </button>
+          </div>
+          <div id="receitasContainer"></div>
+        </section>
+
+        <!-- CALCULADORA -->
+        <section id="calculadora" class="section">
+          <div class="top-bar">
+            <h2>Calculadora de Capitação</h2>
+          </div>
+          <div class="calc-grid">
+            <!-- Por Item -->
+            <div class="calc-panel">
+              <h3><i class="fas fa-weight-hanging"></i> Por Item</h3>
+              <div class="form-group">
+                <label>Item</label>
+                <select
+                  id="calcItem"
+                  class="form-control"
+                  onchange="atualizarCalcInfo()"
+                >
+                  <option value="">-- Selecione um item --</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Número de Pessoas</label>
+                <input
+                  type="number"
+                  id="calcPessoas"
+                  class="form-control"
+                  value="30"
+                  min="1"
+                  oninput="calcularReceita()"
+                />
+              </div>
+              <div class="form-group">
+                <label>Tipo de Cálculo</label>
+                <div class="radio-group">
+                  <label class="radio-option">
+                    <input
+                      type="radio"
+                      name="calcTipo"
+                      value="minima"
+                      onchange="calcularReceita()"
+                    />
+                    Mínima
+                  </label>
+                  <label class="radio-option">
+                    <input
+                      type="radio"
+                      name="calcTipo"
+                      value="media"
+                      checked
+                      onchange="calcularReceita()"
+                    />
+                    Média
+                  </label>
+                  <label class="radio-option">
+                    <input
+                      type="radio"
+                      name="calcTipo"
+                      value="maxima"
+                      onchange="calcularReceita()"
+                    />
+                    Máxima
+                  </label>
+                </div>
+              </div>
+              <div style="display: flex; gap: 8px; flex-wrap: wrap">
+                <button class="btn btn-success" onclick="adicionarAoPlano()">
+                  <i class="fas fa-plus"></i> Adicionar ao Plano
+                </button>
+                <button class="btn btn-info" onclick="salvarHistoricoItem()">
+                  <i class="fas fa-save"></i> Salvar Cálculo
+                </button>
+                <button
+                  class="btn btn-excel"
+                  onclick="exportarCalculoItemExcel()"
+                >
+                  <i class="fas fa-file-excel"></i> Excel
+                </button>
+                <button class="btn btn-pdf" onclick="exportarCalculoItemPDF()">
+                  <i class="fas fa-file-pdf"></i> PDF
+                </button>
+                <button
+                  class="btn btn-warning"
+                  onclick="limparCalculadoraItem()"
+                >
+                  <i class="fas fa-eraser"></i> Limpar
+                </button>
+              </div>
+              <div id="calcResult" class="result-box" style="display: none">
+                <table>
+                  <tr>
+                    <td>Item</td>
+                    <td id="resItem">-</td>
+                  </tr>
+                  <tr>
+                    <td>Grupo / Categoria</td>
+                    <td id="resGrupo">-</td>
+                  </tr>
+                  <tr>
+                    <td>Preparação</td>
+                    <td id="resPreparacao">-</td>
+                  </tr>
+                  <tr>
+                    <td>Pessoas</td>
+                    <td id="resPessoas">-</td>
+                  </tr>
+                  <tr>
+                    <td>Capitação</td>
+                    <td id="resCapitacao">-</td>
+                  </tr>
+                  <tr class="total-row">
+                    <td>Total Necessário</td>
+                    <td id="resTotal">-</td>
+                  </tr>
+                </table>
+              </div>
+            </div>
+
+            <!-- Por Receita -->
+            <div class="calc-panel">
+              <h3><i class="fas fa-book-open"></i> Por Receita</h3>
+              <div class="form-group">
+                <label>Pesquisar Receita</label>
+                <div class="search-wrapper">
+                  <i class="fas fa-search"></i>
+                  <input
+                    type="text"
+                    id="calcReceitaSearch"
+                    class="form-control"
+                    placeholder="Digite para pesquisar..."
+                    autocomplete="off"
+                  />
+                  <div
+                    id="calcReceitaDropdown"
+                    class="autocomplete-dropdown"
+                  ></div>
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Receita</label>
+                <select
+                  id="calcReceitaSelect"
+                  class="form-control"
+                  onchange="atualizarCalcReceitaInfo()"
+                >
+                  <option value="">-- Selecione uma receita --</option>
+                </select>
+                <div id="calcReceitaEmptyMsg" class="empty-msg">
+                  Nenhuma receita encontrada
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Número de Pessoas</label>
+                <input
+                  type="number"
+                  id="calcReceitaPessoas"
+                  class="form-control"
+                  value="30"
+                  min="1"
+                  oninput="calcularReceitaCompleta()"
+                />
+              </div>
+              <div class="form-group">
+                <label>Tipo de Cálculo</label>
+                <div class="radio-group">
+                  <label class="radio-option">
+                    <input
+                      type="radio"
+                      name="calcReceitaTipo"
+                      value="minima"
+                      onchange="calcularReceitaCompleta()"
+                    />
+                    Mínima
+                  </label>
+                  <label class="radio-option">
+                    <input
+                      type="radio"
+                      name="calcReceitaTipo"
+                      value="media"
+                      checked
+                      onchange="calcularReceitaCompleta()"
+                    />
+                    Média
+                  </label>
+                  <label class="radio-option">
+                    <input
+                      type="radio"
+                      name="calcReceitaTipo"
+                      value="maxima"
+                      onchange="calcularReceitaCompleta()"
+                    />
+                    Máxima
+                  </label>
+                </div>
+              </div>
+              <div style="display: flex; gap: 8px; flex-wrap: wrap">
+                <button
+                  class="btn btn-success"
+                  onclick="adicionarReceitaAoPlano()"
+                >
+                  <i class="fas fa-plus"></i> Adicionar ao Plano
+                </button>
+                <button class="btn btn-info" onclick="salvarHistoricoReceita()">
+                  <i class="fas fa-save"></i> Salvar Cálculo
+                </button>
+                <button
+                  class="btn btn-excel"
+                  onclick="exportarCalculoReceitaExcel()"
+                >
+                  <i class="fas fa-file-excel"></i> Excel
+                </button>
+                <button
+                  class="btn btn-pdf"
+                  onclick="exportarCalculoReceitaPDF()"
+                >
+                  <i class="fas fa-file-pdf"></i> PDF
+                </button>
+                <button
+                  class="btn btn-warning"
+                  onclick="limparCalculadoraReceita()"
+                >
+                  <i class="fas fa-eraser"></i> Limpar
+                </button>
+              </div>
+              <div
+                id="calcReceitaResult"
+                style="display: none; margin-top: 16px"
+              >
+                <div id="receitaIngredientesResult"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Histórico de Cálculos -->
+          <div class="historico-panel">
+            <h3>
+              <span><i class="fas fa-history"></i> Histórico de Cálculos</span>
+              <button
+                class="btn btn-sm btn-danger"
+                onclick="limparHistorico()"
+                title="Limpar histórico"
+              >
+                <i class="fas fa-trash-alt"></i>
+              </button>
+            </h3>
+            <div id="historicoList" class="historico-list">
+              <div class="historico-empty">
+                Nenhum cálculo salvo no histórico.
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- PLANO -->
+        <section id="plano" class="section">
+          <div class="top-bar">
+            <h2>Plano de Capitação</h2>
+            <div class="top-bar-actions">
+              <button
+                class="btn btn-secondary btn-sm"
+                onclick="exportarCalculo()"
+              >
+                <i class="fas fa-file-csv"></i> Exportar CSV
+              </button>
+              <button class="btn btn-danger btn-sm" onclick="limparPlano()">
+                <i class="fas fa-trash"></i> Limpar Plano
+              </button>
+            </div>
+          </div>
+          <div class="card">
+            <div id="planoList">
+              <div class="empty-state">
+                <i class="fas fa-clipboard-list"></i>
+                <h4>Plano vazio</h4>
+                <p>
+                  Adicione itens ou receitas na calculadora para montar seu
+                  plano de capitação.
+                </p>
+              </div>
+            </div>
+            <div
+              id="planoTotal"
+              style="
+                display: none;
+                margin-top: 20px;
+                padding-top: 20px;
+                border-top: 2px solid var(--gray-100);
+              "
+            >
+              <div
+                style="
+                  display: flex;
+                  justify-content: space-between;
+                  align-items: center;
+                  font-size: 1.15rem;
+                  font-weight: 700;
+                  font-family: &quot;Plus Jakarta Sans&quot;, sans-serif;
+                "
+              >
+                <span>Total de Itens: <span id="totalItensPlano">0</span></span>
+                <span style="color: var(--primary)"
+                  >Total Geral: <span id="totalGeralPlano">0 kg</span></span
+                >
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- PESQUISAR CAPTAÇÃO -->
+        <section id="pesquisa" class="section">
+          <div class="top-bar">
+            <h2><i class="fas fa-search"></i> Pesquisar Captação</h2>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <h3><i class="fas fa-filter"></i> Filtros de Pesquisa</h3>
+            </div>
+            <div style="padding: 20px">
+              <div class="form-group">
+                <label>Pesquisar por nome ou preparação</label>
+                <input
+                  type="text"
+                  id="pesquisaTexto"
+                  class="form-control"
+                  placeholder="Digite para pesquisar..."
+                  oninput="filtrarPesquisaCaptacao()"
+                />
+              </div>
+              <div
+                style="
+                  display: grid;
+                  grid-template-columns: repeat(3, 1fr);
+                  gap: 16px;
+                "
+              >
+                <div class="form-group">
+                  <label>Grupo</label>
+                  <select
+                    id="pesquisaGrupo"
+                    class="form-control"
+                    onchange="atualizarPesquisaCategorias(); filtrarPesquisaCaptacao()"
+                  >
+                    <option value="">Todos</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>Categoria</label>
+                  <select
+                    id="pesquisaCategoria"
+                    class="form-control"
+                    onchange="atualizarPesquisaPreparacoes(); filtrarPesquisaCaptacao()"
+                  >
+                    <option value="">Todas</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>Preparação</label>
+                  <select
+                    id="pesquisaPreparacao"
+                    class="form-control"
+                    onchange="filtrarPesquisaCaptacao()"
+                  >
+                    <option value="">Todas</option>
+                  </select>
+                </div>
+              </div>
+              <div
+                style="
+                  margin-top: 12px;
+                  color: var(--text-muted);
+                  font-size: 0.9rem;
+                "
+              >
+                <span id="pesquisaContador">0</span> resultado(s)
+                encontrado(s)
+              </div>
+            </div>
+          </div>
+
+          <div id="pesquisaResultados" style="margin-top: 24px"></div>
+        </section>
+      </main>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toastContainer"></div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay" style="display: none">
+      <div class="spinner"></div>
+      <div class="loading-text">Carregando...</div>
+    </div>
+
+    <!-- Modal Item -->
+    <div class="modal" id="itemModal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 id="modalTitle">Novo Item</h3>
+          <button class="modal-close" onclick="closeModal('itemModal')">
+            &times;
+          </button>
+        </div>
+        <div class="modal-body">
+          <form id="formItem">
+            <input type="hidden" id="editId" />
+            <div class="form-group">
+              <label>Grupo</label>
+              <input
+                type="text"
+                id="itemGrupo"
+                class="form-control"
+                placeholder="Digite o grupo"
+                required
+              />
+            </div>
+            <div class="form-group">
+              <label>Categoria</label>
+              <input
+                type="text"
+                id="itemCategoria"
+                class="form-control"
+                placeholder="Digite a categoria"
+                required
+              />
+            </div>
+            <div class="form-group">
+              <label>Preparação / Nome</label>
+              <input
+                type="text"
+                id="itemPreparacao"
+                class="form-control"
+                placeholder="Digite a preparação"
+                required
+              />
+            </div>
+            <div
+              style="
+                display: grid;
+                grid-template-columns: 1fr 1fr 1fr;
+                gap: 12px;
+              "
+            >
+              <div class="form-group">
+                <label>Capitação Mínima (g)</label>
+                <input
+                  type="number"
+                  id="itemMinima"
+                  class="form-control"
+                  step="0.1"
+                  required
+                />
+              </div>
+              <div class="form-group">
+                <label>Capitação Média (g)</label>
+                <input
+                  type="number"
+                  id="itemMedia"
+                  class="form-control"
+                  step="0.1"
+                  required
+                />
+              </div>
+              <div class="form-group">
+                <label>Capitação Máxima (g)</label>
+                <input
+                  type="number"
+                  id="itemMaxima"
+                  class="form-control"
+                  step="0.1"
+                  required
+                />
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Custo Unitário (€/kg)</label>
+              <input
+                type="number"
+                id="itemCusto"
+                class="form-control"
+                step="0.01"
+                required
+              />
+            </div>
+            <div class="form-group">
+              <label>Observação</label>
+              <textarea
+                id="itemObservacao"
+                class="form-control"
+                rows="2"
+                placeholder="Observações opcionais sobre o item"
+              ></textarea>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" onclick="closeModal('itemModal')">
+            Cancelar
+          </button>
+          <button class="btn btn-primary" onclick="salvarItem()">Salvar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Receita -->
+    <div class="modal" id="receitaModal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 id="modalReceitaTitle">Nova Receita</h3>
+          <button class="modal-close" onclick="closeModal('receitaModal')">
+            &times;
+          </button>
+        </div>
+        <div class="modal-body">
+          <form id="formReceita">
+            <input type="hidden" id="editReceitaId" />
+            <div class="form-group">
+              <label>Nome da Receita</label>
+              <input
+                type="text"
+                id="receitaNome"
+                class="form-control"
+                required
+              />
+            </div>
+            <div class="form-group">
+              <label>Modo de Preparo</label>
+              <textarea
+                id="receitaPreparo"
+                class="form-control"
+                rows="3"
+                placeholder="Descreva o modo de preparo da receita..."
+              ></textarea>
+            </div>
+
+            <div style="display:flex;align-items:center;justify-content:space-between;margin:18px 0 12px;">
+              <h4
+                style="
+                  margin: 0;
+                  font-size: 1rem;
+                  font-weight: 700;
+                  color: var(--gray-700);
+                  font-family: &quot;Plus Jakarta Sans&quot;, sans-serif;
+                "
+              >
+                Adicionar Ingrediente
+              </h4>
+              <button
+                type="button"
+                class="btn btn-secondary btn-sm"
+                onclick="sincronizarIngredientesReceitas()"
+                title="Remove ingredientes cujos itens foram excluídos da base de dados"
+                style="font-size:0.78rem;padding:6px 10px;"
+              >
+                <i class="fas fa-sync-alt"></i> Sincronizar
+              </button>
+            </div>
+
+            <div
+              style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px"
+            >
+              <div class="form-group search-wrapper">
+                <label>Grupo</label>
+                <input
+                  type="text"
+                  id="receitaGrupo"
+                  class="form-control select-appearance"
+                  autocomplete="off"
+                  placeholder="Selecione o grupo..."
+                />
+                <div id="dropdownGrupo" class="autocomplete-dropdown"></div>
+              </div>
+              <div class="form-group search-wrapper">
+                <label>Categoria</label>
+                <input
+                  type="text"
+                  id="receitaCategoria"
+                  class="form-control select-appearance"
+                  autocomplete="off"
+                  placeholder="Selecione a categoria..."
+                />
+                <div id="dropdownCategoria" class="autocomplete-dropdown"></div>
+              </div>
+            </div>
+            <div
+              style="display: grid; grid-template-columns: 1fr 110px; gap: 12px; align-items: end;"
+            >
+              <div class="form-group search-wrapper">
+                <label>Preparação</label>
+                <input
+                  type="text"
+                  id="receitaPreparacao"
+                  class="form-control select-appearance"
+                  autocomplete="off"
+                  placeholder="Selecione a preparação..."
+                />
+                <div id="dropdownPreparacao" class="autocomplete-dropdown"></div>
+              </div>
+              <div class="form-group">
+                <label>Unidade</label>
+                <input
+                  type="text"
+                  id="receitaIngUnidade"
+                  class="form-control"
+                  value="kg"
+                />
+              </div>
+            </div>
+            <button
+              type="button"
+              class="btn btn-primary btn-sm"
+              onclick="adicionarItemNaReceita()"
+              style="margin-bottom: 18px;"
+            >
+              <i class="fas fa-plus"></i> Inserir Item na Receita
+            </button>
+
+            <h4
+              style="
+                margin: 0 0 10px;
+                font-size: 1rem;
+                font-weight: 700;
+                color: var(--gray-700);
+                font-family: &quot;Plus Jakarta Sans&quot;, sans-serif;
+              "
+            >
+              Ingredientes da Receita
+            </h4>
+            <div id="ingredientesReceita"></div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button
+            class="btn btn-secondary"
+            onclick="closeModal('receitaModal')"
+          >
+            Cancelar
+          </button>
+          <button class="btn btn-primary" onclick="salvarReceita()">
+            Salvar Receita
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script src="data.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
