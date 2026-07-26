@@ -2,7 +2,7 @@
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       name="description"
       content="Sistema completo de gestão de capitação alimentar com dashboard, receitas, calculadora e plano de capitação."
@@ -13,12 +13,7 @@
       name="apple-mobile-web-app-status-bar-style"
       content="black-translucent"
     />
-    <meta name="apple-mobile-web-app-title" content="Capitação" />
-    <meta name="mobile-web-app-capable" content="yes" />
     <title>Gestão de Capitação</title>
-    <link rel="manifest" href="manifest.json" />
-    <link rel="icon" type="image/png" href="icons/favicon.png" />
-    <link rel="apple-touch-icon" href="icons/icon-192.png" />
     <link rel="stylesheet" href="styles.css" />
     <link
       rel="stylesheet"
@@ -59,6 +54,9 @@
             <li data-section="plano" onclick="navigate('plano')">
               <i class="fas fa-clipboard-list"></i> Plano de Capitação
               <span class="nav-badge" id="badgePlano">0</span>
+            </li>
+            <li data-section="pesquisa" onclick="navigate('pesquisa')">
+              <i class="fas fa-search"></i> Pesquisar Captação
             </li>
             <li
               onclick="toggleDarkMode()"
@@ -538,6 +536,81 @@
             </div>
           </div>
         </section>
+
+        <!-- PESQUISAR CAPTAÇÃO -->
+        <section id="pesquisa" class="section">
+          <div class="top-bar">
+            <h2><i class="fas fa-search"></i> Pesquisar Captação</h2>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <h3><i class="fas fa-filter"></i> Filtros de Pesquisa</h3>
+            </div>
+            <div style="padding: 20px">
+              <div class="form-group">
+                <label>Pesquisar por nome ou preparação</label>
+                <input
+                  type="text"
+                  id="pesquisaTexto"
+                  class="form-control"
+                  placeholder="Digite para pesquisar..."
+                  oninput="filtrarPesquisaCaptacao()"
+                />
+              </div>
+              <div
+                style="
+                  display: grid;
+                  grid-template-columns: repeat(3, 1fr);
+                  gap: 16px;
+                "
+              >
+                <div class="form-group">
+                  <label>Grupo</label>
+                  <select
+                    id="pesquisaGrupo"
+                    class="form-control"
+                    onchange="atualizarPesquisaCategorias(); filtrarPesquisaCaptacao()"
+                  >
+                    <option value="">Todos</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>Categoria</label>
+                  <select
+                    id="pesquisaCategoria"
+                    class="form-control"
+                    onchange="atualizarPesquisaPreparacoes(); filtrarPesquisaCaptacao()"
+                  >
+                    <option value="">Todas</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>Preparação</label>
+                  <select
+                    id="pesquisaPreparacao"
+                    class="form-control"
+                    onchange="filtrarPesquisaCaptacao()"
+                  >
+                    <option value="">Todas</option>
+                  </select>
+                </div>
+              </div>
+              <div
+                style="
+                  margin-top: 12px;
+                  color: var(--text-muted);
+                  font-size: 0.9rem;
+                "
+              >
+                <span id="pesquisaContador">0</span> resultado(s)
+                encontrado(s)
+              </div>
+            </div>
+          </div>
+
+          <div id="pesquisaResultados" style="margin-top: 24px"></div>
+        </section>
       </main>
     </div>
 
@@ -803,16 +876,5 @@
 
     <script src="data.js"></script>
     <script src="app.js"></script>
-    <script>
-      // Registra o Service Worker (funciona no GitHub Pages, que já é https;
-      // não funciona se o arquivo for aberto direto com file://).
-      if ("serviceWorker" in navigator && location.protocol !== "file:") {
-        window.addEventListener("load", () => {
-          navigator.serviceWorker
-            .register("sw.js")
-            .catch((err) => console.warn("Falha ao registrar o Service Worker:", err));
-        });
-      }
-    </script>
   </body>
 </html>

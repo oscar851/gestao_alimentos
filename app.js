@@ -618,6 +618,7 @@ function navigate(sectionId) {
     renderizarHistorico();
   }
   if (sectionId === "plano") renderizarPlano();
+  if (sectionId === "pesquisa") renderizarPesquisaCaptacao();
 
   document.getElementById("sidebar").classList.remove("open");
 }
@@ -2952,4 +2953,189 @@ function formatarMoeda(valor) {
       maximumFractionDigits: 2,
     })
   );
+}
+
+// ===== PESQUISAR CAPTAÇÃO =====
+function renderizarPesquisaCaptacao() {
+  const selGrupo = document.getElementById("pesquisaGrupo");
+  const selCategoria = document.getElementById("pesquisaCategoria");
+  const selPreparacao = document.getElementById("pesquisaPreparacao");
+
+  // Guardar valores atuais
+  const valGrupo = selGrupo.value;
+  const valCategoria = selCategoria.value;
+  const valPreparacao = selPreparacao.value;
+
+  // Popular Grupos
+  const grupos = [...new Set(capitacaoItens.map(i => i.grupo).filter(Boolean))].sort();
+  selGrupo.innerHTML = '<option value="">Todos</option>';
+  grupos.forEach(g => {
+    const opt = document.createElement("option");
+    opt.value = g;
+    opt.textContent = g;
+    selGrupo.appendChild(opt);
+  });
+  selGrupo.value = valGrupo;
+
+  // Popular Categorias (filtradas por grupo se selecionado)
+  atualizarPesquisaCategorias(false);
+  selCategoria.value = valCategoria;
+
+  // Popular Preparações (filtradas)
+  atualizarPesquisaPreparacoes(false);
+  selPreparacao.value = valPreparacao;
+
+  filtrarPesquisaCaptacao();
+}
+
+function atualizarPesquisaCategorias(deveFiltrar = true) {
+  const selGrupo = document.getElementById("pesquisaGrupo");
+  const selCategoria = document.getElementById("pesquisaCategoria");
+  const selPreparacao = document.getElementById("pesquisaPreparacao");
+  const grupo = selGrupo.value;
+
+  const itensFiltrados = grupo
+    ? capitacaoItens.filter(i => i.grupo === grupo)
+    : capitacaoItens;
+  const categorias = [...new Set(itensFiltrados.map(i => i.categoria).filter(Boolean))].sort();
+
+  const valAtual = selCategoria.value;
+  selCategoria.innerHTML = '<option value="">Todas</option>';
+  categorias.forEach(c => {
+    const opt = document.createElement("option");
+    opt.value = c;
+    opt.textContent = c;
+    selCategoria.appendChild(opt);
+  });
+
+  // Se o valor anterior ainda for válido, mantém; senão reseta
+  if (categorias.includes(valAtual)) {
+    selCategoria.value = valAtual;
+  } else {
+    selCategoria.value = "";
+    selPreparacao.value = "";
+  }
+
+  atualizarPesquisaPreparacoes(false);
+  if (deveFiltrar) filtrarPesquisaCaptacao();
+}
+
+function atualizarPesquisaPreparacoes(deveFiltrar = true) {
+  const selGrupo = document.getElementById("pesquisaGrupo");
+  const selCategoria = document.getElementById("pesquisaCategoria");
+  const selPreparacao = document.getElementById("pesquisaPreparacao");
+  const grupo = selGrupo.value;
+  const categoria = selCategoria.value;
+
+  let itensFiltrados = capitacaoItens;
+  if (grupo) itensFiltrados = itensFiltrados.filter(i => i.grupo === grupo);
+  if (categoria) itensFiltrados = itensFiltrados.filter(i => i.categoria === categoria);
+
+  const preparacoes = [...new Set(itensFiltrados.map(i => i.preparacao || i.nome).filter(Boolean))].sort();
+
+  const valAtual = selPreparacao.value;
+  selPreparacao.innerHTML = '<option value="">Todas</option>';
+  preparacoes.forEach(p => {
+    const opt = document.createElement("option");
+    opt.value = p;
+    opt.textContent = p;
+    selPreparacao.appendChild(opt);
+  });
+
+  if (preparacoes.includes(valAtual)) {
+    selPreparacao.value = valAtual;
+  } else {
+    selPreparacao.value = "";
+  }
+
+  if (deveFiltrar) filtrarPesquisaCaptacao();
+}
+
+function filtrarPesquisaCaptacao() {
+  const texto = document.getElementById("pesquisaTexto").value.toLowerCase().trim();
+  const grupo = document.getElementById("pesquisaGrupo").value;
+  const categoria = document.getElementById("pesquisaCategoria").value;
+  const preparacao = document.getElementById("pesquisaPreparacao").value;
+
+  let resultados = capitacaoItens.filter(item => {
+    const nome = (item.nome || item.preparacao || "").toLowerCase();
+    const prep = (item.preparacao || item.nome || "").toLowerCase();
+    const cat = (item.categoria || "").toLowerCase();
+    const grp = (item.grupo || "").toLowerCase();
+
+    const matchTexto = !texto || nome.includes(texto) || prep.includes(texto) || cat.includes(texto) || grp.includes(texto);
+    const matchGrupo = !grupo || item.grupo === grupo;
+    const matchCategoria = !categoria || item.categoria === categoria;
+    const matchPreparacao = !preparacao || (item.preparacao === preparacao) || (item.nome === preparacao);
+
+    return matchTexto && matchGrupo && matchCategoria && matchPreparacao;
+  });
+
+  // Ordenar por grupo > categoria > nome
+  resultados.sort((a, b) =>
+    (a.grupo || "").localeCompare(b.grupo || "") ||
+    (a.categoria || "").localeCompare(b.categoria || "") ||
+    (a.nome || a.preparacao || "").localeCompare(b.nome || b.preparacao || "")
+  );
+
+  document.getElementById("pesquisaContador").textContent = resultados.length;
+  renderizarResultadosPesquisa(resultados);
+}
+
+function renderizarResultadosPesquisa(resultados) {
+  const container = document.getElementById("pesquisaResultados");
+
+  if (resultados.length === 0) {
+    container.innerHTML = `
+      <div class="card" style="text-align: center; padding: 40px 20px; color: var(--text-muted);">
+        <i class="fas fa-inbox" style="font-size: 2.5rem; margin-bottom: 12px; opacity: 0.5;"></i>
+        <p>Nenhum item encontrado com os filtros selecionados.</p>
+      </div>
+    `;
+    return;
+  }
+
+  let html = '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px;">';
+
+  resultados.forEach(item => {
+    const nome = item.nome || item.preparacao || "Sem nome";
+    const prep = item.preparacao || item.nome || "—";
+    const min = item.capitacao_minima ?? 0;
+    const med = item.capitacao_media ?? 0;
+    const max = item.capitacao_maxima ?? 0;
+
+    html += `
+      <div class="card" style="padding: 0; overflow: hidden;">
+        <div style="padding: 16px 18px; border-bottom: 1px solid var(--gray-200);">
+          <div style="font-size: 1.1rem; font-weight: 700; color: var(--text); margin-bottom: 4px;">${nome}</div>
+          <div style="font-size: 0.85rem; color: var(--text-muted);">
+            <span style="display: inline-block; background: var(--primary-light); color: var(--primary); padding: 2px 8px; border-radius: 4px; margin-right: 6px; font-weight: 600;">${item.grupo || "—"}</span>
+            ${item.categoria || "—"}
+          </div>
+        </div>
+        <div style="padding: 14px 18px;">
+          <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 10px;">
+            <i class="fas fa-cut" style="margin-right: 4px;"></i> ${prep}
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
+            <div style="text-align: center; padding: 10px 6px; background: rgba(16,185,129,0.08); border-radius: 8px; border: 1px solid rgba(16,185,129,0.15);">
+              <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Mínima</div>
+              <div style="font-size: 1.15rem; font-weight: 800; color: #10b981;">${min.toFixed(1)} <span style="font-size: 0.75rem; font-weight: 500;">g</span></div>
+            </div>
+            <div style="text-align: center; padding: 10px 6px; background: rgba(59,130,246,0.08); border-radius: 8px; border: 1px solid rgba(59,130,246,0.15);">
+              <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Média</div>
+              <div style="font-size: 1.15rem; font-weight: 800; color: #3b82f6;">${med.toFixed(1)} <span style="font-size: 0.75rem; font-weight: 500;">g</span></div>
+            </div>
+            <div style="text-align: center; padding: 10px 6px; background: rgba(245,158,11,0.08); border-radius: 8px; border: 1px solid rgba(245,158,11,0.15);">
+              <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Máxima</div>
+              <div style="font-size: 1.15rem; font-weight: 800; color: #f59e0b;">${max.toFixed(1)} <span style="font-size: 0.75rem; font-weight: 500;">g</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  });
+
+  html += '</div>';
+  container.innerHTML = html;
 }
